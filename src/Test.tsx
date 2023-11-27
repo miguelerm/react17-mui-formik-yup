@@ -1,67 +1,101 @@
-import React, { useState } from "react";
-import { SelectChangeEvent } from "@mui/material";
-import ContainerHours, { OpenDay } from "./Presenter";
-import convertToAmPm from "./convert-to-am-pm";
+import { useEffect, useState } from "react";
+import { Box, Button, Divider, Typography } from "@mui/material";
+import { SelectChangeEvent } from "@mui/material/Select";
+import Checkbox from "@mui/material/Checkbox";
+import { Formik, Form, FieldArray, Field, FieldInputProps, FieldMetaProps } from "formik";
+import * as Yup from "yup";
 
 function Test() {
-  const defaultDays: OpenDay[] = [
-    { id: 1, open: true, opening: "10:00", closing: "12:00" },
-    { id: 2, open: true, opening: "09:00", closing: "14:00" },
-    { id: 3, open: true, opening: "08:00", closing: "10:00" },
-    { id: 4, open: true, opening: "14:00", closing: "16:00" },
-    { id: 5, open: true, opening: "15:00", closing: "18:00" }
-  ];
-  const weekDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+    const [state, setState] = useState<State>({
+        data: [],
+        loading: true,
+        failed: false,
+    });
 
-  const [days, setDays] = useState(defaultDays);
+    useEffect(() => {
+        const retrieveData = async () => {
+            try {
+                const response = await fetch("/data.json");
+                const data = await response.json() as Data[];
+                data.forEach((item) => {
+                    // void null or undefined to prevent formik errors.
+                    item.min = item.min || 0;
+                    item.max = item.max || 0;
+                });
+                setState((prevState) => ({ ...prevState, data }));
+            } catch (e) {
+                console.error(e);
+                setState((prevState) => ({ ...prevState, failed: true }));
+            }
 
-  function handleCheck(index: number): void {
-    console.log('handleCheck: ', arguments);
-  }
+            setState((prevState) => ({ ...prevState, loading: false }));
+        };
+        retrieveData();
+    }, []);
+    
+    if (state.loading) {
+        return <div>Loading...</div>;
+    }
 
-  function handleClear(): void {
-    console.log('handleClear: ', arguments);
-  }
+    if (state.failed) {
+        return <div>Failed to load data</div>;
+    }
 
-  function updateDay(index: number, prop: keyof OpenDay, value: string)
-  {
-    setDays(days.map((day, idx) => idx === index ? { ...day, [prop]: value }: day ));
-  }
+    if (!state.data.length) {
+        return <div>No data</div>;
+    }
 
-  function handleChangeOpen(
-    event: SelectChangeEvent<any>,
-    index: number
-  ): void {
-    updateDay(index, 'opening', event.target.value);
-  }
+    function onSubmit(values: { data: Data[] }) {
+        console.log('submit: ', values);
+    }
 
-  function handleChangeClose(
-    event: SelectChangeEvent<any>,
-    index: number
-  ): void {
-    updateDay(index, 'closing', event.target.value);
-  }
+    console.log('state: ', state);
 
-  function handleSave(): void {
-    console.log('handleSave: ', arguments);
-  }
+    return <Formik
+        initialValues={{ data: state.data }}
+        onSubmit={onSubmit}
+        >
+    {({ touched }) => (<Form>
+        <FieldArray name="data">
+            {() => (
+                <div>
+                    {state.data.map((item, index) => (
+                        <div key={item.id}>
+                            <Field name={`data.${index}.checked`} type="checkbox" as={Checkbox} />
+                            <Field name={`data.${index}.title`} type="text" />
+                            <Field name={`data.${index}.min`} type="number" />
+                            <Field name={`data.${index}.max`} type="number" />
+                        </div>
+                    ))}
+                </div>
+            )}
+        </FieldArray>
+        <Button type="submit" disabled={!touched.data}>Save (t: {JSON.stringify(touched)})</Button>
+    </Form>) }
+    </Formik>;
+}
 
-  return (
-    <div className="App">
-      <ContainerHours
-        actionEnable={true}
-        isCheckDisable={false}
-        days={days}
-        weekDays={weekDays}
-        handleCheck={handleCheck}
-        handleClear={handleClear}
-        handleChangeOpen={handleChangeOpen}
-        handleChangeClose={handleChangeClose}
-        handleSave={handleSave}
-        convertToAmPm={convertToAmPm}
-      />
+function Item(props: Data) {
+    return <div>
+        <label>
+            <input type="checkbox" />
+            <span>{props.title}</span>
+        </label>
     </div>
-  );
+}
+
+export interface State {
+    data: Data[];
+    loading: boolean;
+    failed: boolean;
+}
+
+export interface Data {
+    id: number;
+    title: string;
+    checked: boolean;
+    min?: number;
+    max?: number;
 }
 
 export default Test;

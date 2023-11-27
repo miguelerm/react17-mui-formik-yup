@@ -1,0 +1,7 @@
+[
+    { "id": 1, "title": "first title", "checked": false, "min": 10, "max": 20 },
+    { "id": 2, "title": "second title", "checked": true, "min": 8, "max": 15 },
+    { "id": 3, "title": "third title", "checked": false, "min": 6, "max": 10 },
+    { "id": 4, "title": "fourth title", "checked": true, "min": null, "max": null },
+    { "id": 5, "title": "fifth title", "checked": false, "min": 2, "max": 4 }
+]
